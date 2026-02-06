@@ -30,6 +30,7 @@
 ### Other changes
 - CSS style changes for weather plugin for vertical display
 - Image rotation for vertical and resize on upload to save space, border pad option
+- Device install configured as mock to serve as server
 
 ## About InkyPi 
 <img src="./docs/images/inky_clock.jpg" />
