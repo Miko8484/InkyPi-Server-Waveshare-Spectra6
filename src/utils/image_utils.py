@@ -107,13 +107,29 @@ def take_screenshot_html(html_str, dimensions, timeout_ms=None):
     return image
 
 def _find_chromium_binary():
-    """Find the first available Chromium-based binary in system PATH."""
+    """Find the first available Chromium-based binary in system PATH or common locations."""
+    import platform
+
+    # First check system PATH
     candidates = ["chromium-headless-shell", "chromium", "chrome"]
     for candidate in candidates:
         path = shutil.which(candidate)
         if path:
             logger.debug(f"Found browser binary: {candidate} at {path}")
-            return candidate
+            return path
+
+    # On Windows, check common Chrome installation paths
+    if platform.system() == "Windows":
+        windows_paths = [
+            os.path.join(os.environ.get("PROGRAMFILES", ""), "Google", "Chrome", "Application", "chrome.exe"),
+            os.path.join(os.environ.get("PROGRAMFILES(X86)", ""), "Google", "Chrome", "Application", "chrome.exe"),
+            os.path.join(os.environ.get("LOCALAPPDATA", ""), "Google", "Chrome", "Application", "chrome.exe"),
+        ]
+        for path in windows_paths:
+            if path and os.path.isfile(path):
+                logger.debug(f"Found browser binary at {path}")
+                return path
+
     return None
 
 

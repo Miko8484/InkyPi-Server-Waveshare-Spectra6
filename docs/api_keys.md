@@ -94,3 +94,14 @@ Required for the Image Album plugin for the Immich Provider
     ```
     IMMICH_KEY=your-key
     ```
+
+## Xiaomi Sensor MAC Address
+
+Optional for the Weather Plugin to display indoor temperature and humidity
+
+- Find the MAC address of your Xiaomi Bluetooth temperature/humidity sensor (e.g., LYWSD03MMC with custom firmware)
+- The MAC address format should be `XX:XX:XX:XX:XX:XX`
+- Store the MAC address in the .env file with the key `XIAOMI_SENSOR_MAC`
+    ```
+    XIAOMI_SENSOR_MAC=sensor-MAC
+    ```

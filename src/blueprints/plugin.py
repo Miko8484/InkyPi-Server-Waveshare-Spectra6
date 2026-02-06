@@ -164,8 +164,10 @@ def update_plugin_instance(instance_name):
 
         if not instance_name:
             raise RuntimeError("Instance name is required")
+        plugin_settings = form_data
+        plugin_settings.update(handle_request_files(request.files, request.form, device_config))
 
-        plugin_id = form_data.pop("plugin_id")
+        plugin_id = plugin_settings.pop("plugin_id")
         plugin_instance = playlist_manager.find_plugin(plugin_id, instance_name)
         if not plugin_instance:
             return jsonify({"error": f"Plugin instance: {instance_name} does not exist"}), 500
@@ -194,7 +196,6 @@ def update_plugin_instance(instance_name):
 
         if plugin_settings:  # Only update if there are actual plugin settings
             plugin_instance.settings = plugin_settings
-
         device_config.write_config()
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
@@ -226,6 +227,71 @@ def display_plugin_instance():
 
     return jsonify({"success": True, "message": "Display updated"}), 200
 
+@plugin_bp.route('/next_plugin', methods=['POST'])
+def next_plugin():
+    """Switch to the next plugin in the active playlist."""
+    device_config = current_app.config['DEVICE_CONFIG']
+    refresh_task = current_app.config['REFRESH_TASK']
+    playlist_manager = device_config.get_playlist_manager()
+
+    try:
+        refresh_info = device_config.get_refresh_info()
+
+        # Get the current playlist
+        if not refresh_info.playlist:
+            return jsonify({"success": False, "message": "No active playlist"}), 400
+
+        playlist = playlist_manager.get_playlist(refresh_info.playlist)
+        if not playlist:
+            return jsonify({"success": False, "message": f"Playlist '{refresh_info.playlist}' not found"}), 404
+
+        if len(playlist.plugins) == 0:
+            return jsonify({"success": False, "message": "Playlist has no plugins"}), 400
+
+        # Get the next plugin in the playlist
+        next_plugin_instance = playlist.get_next_plugin()
+        device_config.write_config()  # Save the updated current_plugin_index
+
+        refresh_task.manual_update(PlaylistRefresh(playlist, next_plugin_instance, force=True))
+
+    except Exception as e:
+        logger.exception(f"Error in next_plugin: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+    return jsonify({"success": True, "message": f"Switching to '{next_plugin_instance.name}'"}), 200
+
+
+@plugin_bp.route('/refresh_current', methods=['POST'])
+def refresh_current():
+    """Refresh the currently displayed plugin."""
+    device_config = current_app.config['DEVICE_CONFIG']
+    refresh_task = current_app.config['REFRESH_TASK']
+    playlist_manager = device_config.get_playlist_manager()
+
+    try:
+        refresh_info = device_config.get_refresh_info()
+
+        # Check if we have a valid playlist-based refresh to re-trigger
+        if not refresh_info.playlist or not refresh_info.plugin_instance:
+            return jsonify({"success": False, "message": "No current plugin to refresh"}), 400
+
+        playlist = playlist_manager.get_playlist(refresh_info.playlist)
+        if not playlist:
+            return jsonify({"success": False, "message": f"Playlist '{refresh_info.playlist}' not found"}), 404
+
+        plugin_instance = playlist.find_plugin(refresh_info.plugin_id, refresh_info.plugin_instance)
+        if not plugin_instance:
+            return jsonify({"success": False, "message": f"Plugin instance '{refresh_info.plugin_instance}' not found"}), 404
+
+        refresh_task.manual_update(PlaylistRefresh(playlist, plugin_instance, force=True))
+
+    except Exception as e:
+        logger.exception(f"Error in refresh_current: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+    return jsonify({"success": True, "message": f"Refreshing '{refresh_info.plugin_instance}'"}), 200
+
+
 @plugin_bp.route('/update_now', methods=['POST'])
 def update_now():
     device_config = current_app.config['DEVICE_CONFIG']
@@ -234,7 +300,7 @@ def update_now():
 
     try:
         plugin_settings = parse_form(request.form)
-        plugin_settings.update(handle_request_files(request.files))
+        plugin_settings.update(handle_request_files(request.files, device_config=device_config))
         plugin_id = plugin_settings.pop("plugin_id")
 
         # Check if refresh task is running

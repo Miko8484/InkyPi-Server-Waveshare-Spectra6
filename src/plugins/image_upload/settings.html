@@ -27,6 +27,11 @@
             <input type="color" id="backgroundColor" name="backgroundColor" value="#ffffff" class="color-picker"/>
         </div>
     </div>
+    <div class="form-group">
+        <label class="form-label" for="borderPercent">Border Size: <span id="borderPercentValue">0</span>%</label>
+        <input type="range" id="borderPercent" name="borderPercent" min="0" max="10" step="1" value="0" class="form-range"
+               oninput="document.getElementById('borderPercentValue').textContent = this.value">
+    </div>
 </div>
 
 <div class="form-group">
@@ -62,13 +67,23 @@
                 uploadedFiles["imageFiles[]"].push(file);
 
                 const fileElement = document.createElement("div");
-                fileElement.innerHTML = `
-                    <span id="fileNameText">${fileName}</span>
-                    <button type="button" class="remove-btn" onclick="removeAddedFile('${fileName}')">X</button>
-                `;
-                fileElement.id = `added-${fileName}`;
                 fileElement.classList.add("file-name");
                 fileElement.setAttribute('delete-on-submit', '');
+                fileElement.dataset.fileName = fileName;
+                fileElement.dataset.fileType = 'added';
+
+                const span = document.createElement("span");
+                span.id = "fileNameText";
+                span.textContent = fileName;
+                fileElement.appendChild(span);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "remove-btn";
+                removeBtn.textContent = "X";
+                removeBtn.addEventListener("click", () => removeAddedFile(fileName, fileElement));
+                fileElement.appendChild(removeBtn);
+
                 fileNamesDisplay.appendChild(fileElement);
             }
         });
@@ -77,17 +92,17 @@
         fileInput.value = "";
     }
 
-    function removeAddedFile(fileName) {
+    function removeAddedFile(fileName, fileElement) {
         // Remove the file from uploadedFiles
         uploadedFiles["imageFiles[]"] = uploadedFiles["imageFiles[]"].filter(f => f.name !== fileName);
-        
+
         // Remove the displayed filename
-        document.getElementById(`added-${fileName}`).remove();
+        fileElement.remove();
     }
 
-    function removeExistingFile(fileName) {
-        document.getElementById(`existing-${fileName}`).remove(); // Remove from display
-        document.getElementById(`hidden-${fileName}`).remove(); // Remove hidden input
+    function removeExistingFile(fileElement, hiddenInput) {
+        fileElement.remove(); // Remove from display
+        hiddenInput.remove(); // Remove hidden input
     }
 
     // populate form values from plugin settings
@@ -99,32 +114,43 @@
             document.getElementById('padImage').checked = pluginSettings.padImage == 'false';
             document.getElementById('randomize').checked = pluginSettings.randomize;
             document.getElementById('backgroundColor').value = pluginSettings.backgroundColor;
+            const borderPercent = pluginSettings.borderPercent || 0;
+            document.getElementById('borderPercent').value = borderPercent;
+            document.getElementById('borderPercentValue').textContent = borderPercent;
 
             const existingFiles = pluginSettings['imageFiles[]'] || []
             backgroundOption = pluginSettings.backgroundOption || 'blur'
 
             // Loop through the existing files and add them to the display and hidden inputs
             existingFiles.forEach(filePath => {
-                const fileName = filePath.split('/').pop()
-                // Create an element for the file name
-                const fileElement = document.createElement("div");
-                fileElement.innerHTML = `
-                    <span id="fileNameText">${fileName}</span>
-                    <button type="button" class="remove-btn" onclick="removeExistingFile('${fileName}')">X</button>
-                `;
-                fileElement.id = `existing-${fileName}`;
-                fileElement.classList.add("file-name");
-                fileElement.setAttribute('delete-on-submit', '');
-                fileNamesDisplay.appendChild(fileElement);
+                const fileName = filePath.split('/').pop();
 
                 // Create a hidden input for the existing file
                 const hiddenInput = document.createElement("input");
                 hiddenInput.type = "hidden";
                 hiddenInput.name = "imageFiles[]";
                 hiddenInput.value = filePath;
-                hiddenInput.id = `hidden-${fileName}`;
                 hiddenInput.setAttribute('delete-on-submit', '');
                 hiddenFileInputs.appendChild(hiddenInput);
+
+                // Create an element for the file name
+                const fileElement = document.createElement("div");
+                fileElement.classList.add("file-name");
+                fileElement.setAttribute('delete-on-submit', '');
+
+                const span = document.createElement("span");
+                span.id = "fileNameText";
+                span.textContent = fileName;
+                fileElement.appendChild(span);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "remove-btn";
+                removeBtn.textContent = "X";
+                removeBtn.addEventListener("click", () => removeExistingFile(fileElement, hiddenInput));
+                fileElement.appendChild(removeBtn);
+
+                fileNamesDisplay.appendChild(fileElement);
             });
         }
         document.querySelector(`input[name="backgroundOption"][value="${backgroundOption}"]`).checked = true;

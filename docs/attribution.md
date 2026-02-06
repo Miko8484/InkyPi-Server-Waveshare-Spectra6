@@ -51,6 +51,10 @@ This project uses various fonts and icons, each with specific licensing terms. B
 | <img src="../src/plugins/weather/icons/visibility.png" width="32" height="32"> |<a href="https://www.flaticon.com/free-icons/observe" title="observe icons">Observe icons created by meaicon - Flaticon</a>|
 | <img src="../src/plugins/weather/icons/wind.png" width="32" height="32"> |<a href="https://www.flaticon.com/free-icons/wind" title="wind icons">Wind icons created by riajulislam - Flaticon</a>|
 
+Weather Icons Copyright (c) 2012-2026 Erik Flowers
+Font License: SIL OFL 1.1 (http://scripts.sil.org/OFL) Code License: MIT License (http://opensource.org/licenses/mit-license.html) Documentation License: CC BY 3.0 (http://creativecommons.org/licenses/by/3.0/)
+Source: https://erikflowers.github.io/weather-icons/
+
 ## Waveshare e-Paper
 This project includes Waveshare e-Paper display drivers licensed under an MIT license.
 

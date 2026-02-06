@@ -1,9 +1,38 @@
-# InkyPi 
+# InkyPi
 
-<img src="./docs/images/inky_clock.jpg" />
+## Changes compared to original InkyPi
 
+### Weather Plugin Enhancements
+- **Indoor Sensor Support**: Display indoor temperature and humidity from Xiaomi BLE sensors (with custom firmware). Configure MAC via `XIAOMI_SENSOR_MAC` in the [API Keys](./docs/api_keys.md) settings.
+- **Quote of the Day**: Daily inspirational quotes displayed on the weather screen
+- **Improved Forecast Icons**: New SVG weather icons for cleaner forecast display in forecast in coming days
+
+### ESP32 Wireless Display Client
+- New ESP32-based wireless client for Waveshare Spectra 6 displays (`waveshareSpectra/inkypi.ino`)
+- Fetches images from InkyPi server over WiFi - display can be placed anywhere in your home
+- Supports deep sleep with wake-on-button for energy efficiency
+- Hardware buttons for next plugin and refresh actions
+- Schematics:
+<img src="./docs/images/schematics.jpg" />
+
+### New API Endpoints
+- `/next_plugin` - Switch to the next plugin in the active playlist
+- `/refresh_current` - Refresh the currently displayed plugin
+- `/api/current_image?format=spectra6` - Get image in packed 4bpp format for Spectra 6 displays
+
+### Image Upload Plugin
+- **Border Size Option**: Add configurable border around uploaded images
+
+### Other Improvements
+- Windows compatibility: Chrome browser detection for HTML rendering on Windows development machines
+- Improved image dithering for 6-color Spectra displays
+
+### Other changes
+- CSS style changes for weather plugin for vertical display
+- Image rotation for vertical and resize on upload to save space, border pad option
 
 ## About InkyPi 
+<img src="./docs/images/inky_clock.jpg" />
 InkyPi is an open-source, customizable E-Ink display powered by a Raspberry Pi. Designed for simplicity and flexibility, it allows you to effortlessly display the content you care about, with a simple web interface that makes setup and configuration effortless.
 
 **Features**:

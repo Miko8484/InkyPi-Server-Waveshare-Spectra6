@@ -5,6 +5,7 @@ import subprocess
 
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageOps
+from utils.image_utils import pad_image_blur
 
 logger = logging.getLogger(__name__)
 
@@ -142,8 +143,9 @@ def parse_form(request_form):
             request_dict[key] = request_form.getlist(key)
     return request_dict
 
-def handle_request_files(request_files, form_data={}):
-    allowed_file_extensions = {'pdf', 'png', 'avif', 'jpg', 'jpeg', 'gif', 'webp', 'heif', 'heic'}
+def handle_request_files(request_files, form_data={}, device_config=None):
+    allowed_file_extensions = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'heif', 'heic'}
+    image_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'heif', 'heic'}
     file_location_map = {}
     # handle existing file locations being provided as part of the form data
     for key in set(request_files.keys()):
@@ -166,17 +168,25 @@ def handle_request_files(request_files, form_data={}):
         file_save_dir = resolve_path(os.path.join("static", "images", "saved"))
         file_path = os.path.join(file_save_dir, file_name)
 
-        # Open the image and apply EXIF transformation before saving
-        if extension in {'jpg', 'jpeg'}:
+        # Open the image and process it
+        if extension.lower() in image_extensions:
             try:
                 with Image.open(file) as img:
+                    # Apply EXIF transformation
                     img = ImageOps.exif_transpose(img)
+
+                    # Apply resize and rotation if device_config is provided
+                    if device_config:
+                        border_percent = int(form_data.get("borderPercent", 0))
+                        img = _resize_and_rotate_image(img, device_config, border_percent)
+
                     img.save(file_path)
             except Exception as e:
-                logger.warning(f"EXIF processing error for {file_name}: {e}")
+                logger.warning(f"Image processing error for {file_name}: {e}")
+                file.seek(0)
                 file.save(file_path)
         else:
-            # Directly save non-JPEG files
+            # Directly save non-image files (e.g., PDF)
             file.save(file_path)
 
         if is_list:
@@ -185,3 +195,40 @@ def handle_request_files(request_files, form_data={}):
         else:
             file_location_map[key] = file_path
     return file_location_map
+
+
+def _resize_and_rotate_image(image, device_config, border_percent=0):
+    # Resize and rotate image based on device configuration.
+    orientation = device_config.get_config("orientation")
+    display_size = device_config.get_resolution()
+
+    if orientation == "vertical":
+        target_size = (display_size[1], display_size[0])
+        # For portrait mode: resize then rotate for display
+        if image.width > image.height:
+            # Landscape image in portrait mode: pad with blurred background
+            fitted_img = pad_image_blur(image, target_size)
+            image = fitted_img.rotate(90, expand=True)
+        else:
+            fitted_img = ImageOps.fit(image, target_size, Image.Resampling.LANCZOS)
+            image = fitted_img.rotate(90, expand=True)
+    else:
+        # Landscape mode: just resize to display dimensions
+        image = ImageOps.fit(image, display_size, Image.Resampling.LANCZOS)
+
+    # Apply border if border_percent > 0
+    if border_percent > 0:
+        canvas_size = image.size
+        shrink_factor = 1 - (border_percent / 100)
+        new_width = int(canvas_size[0] * shrink_factor)
+        new_height = int(canvas_size[1] * shrink_factor)
+        shrunk_image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+        # Create white canvas and paste shrunk image centered
+        white_canvas = Image.new("RGB", canvas_size, (255, 255, 255))
+        paste_x = (canvas_size[0] - new_width) // 2
+        paste_y = (canvas_size[1] - new_height) // 2
+        white_canvas.paste(shrunk_image, (paste_x, paste_y))
+        image = white_canvas
+
+    return image
