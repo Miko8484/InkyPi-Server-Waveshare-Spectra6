@@ -120,7 +120,7 @@ class Weather(BasePlugin):
             template_params['title'] = title
 
             # Fetch indoor sensor data from Xiaomi BLE sensor
-            indoor_sensor_mac = os.environ.get("XIAOMI_SENSOR_MAC")
+            indoor_sensor_mac = device_config.load_env_key("XIAOMI_SENSOR_MAC")
             indoor_data = self.get_xiaomi_sensor_data(indoor_sensor_mac) if indoor_sensor_mac else None
             if indoor_data:
                 indoor_temp = indoor_data.get('temperature')
