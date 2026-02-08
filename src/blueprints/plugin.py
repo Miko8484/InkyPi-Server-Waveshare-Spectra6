@@ -192,7 +192,6 @@ def update_plugin_instance(instance_name):
 
         # Only update plugin settings if there's actual data (not just refresh settings)
         plugin_settings = form_data
-        plugin_settings.update(handle_request_files(request.files, request.form))
 
         if plugin_settings:  # Only update if there are actual plugin settings
             plugin_instance.settings = plugin_settings

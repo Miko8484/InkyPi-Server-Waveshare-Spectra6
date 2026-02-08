@@ -171,21 +171,7 @@ def handle_request_files(request_files, form_data={}, device_config=None):
         # Open the image and process it
         if extension.lower() in image_extensions:
             try:
-                # Save raw upload to disk first to avoid decoding full image in memory
-                # This is critical for large images (50MP+) on low-RAM devices like Pi Zero
-                file.save(file_path)
-
-                with Image.open(file_path) as img:
-                    # Use draft mode to decode at reduced resolution if resizing anyway
-                    if device_config:
-                        display_size = device_config.get_resolution()
-                        # Draft mode tells PIL to decode JPEG/PNG at a smaller size
-                        # Request 2x target to preserve quality for final LANCZOS resize
-                        draft_size = (max(display_size) * 2, max(display_size) * 2)
-                        img.draft('RGB', draft_size)
-
-                    img.load()
-
+                with Image.open(file) as img:
                     # Apply EXIF transformation
                     img = ImageOps.exif_transpose(img)
 
